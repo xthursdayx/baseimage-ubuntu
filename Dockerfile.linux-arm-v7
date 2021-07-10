@@ -2,6 +2,7 @@ FROM ubuntu@sha256:4c8dedb3298beeafd2f3ece9931531009f5622e314fa7803933e892f68114
 
 ARG DEBIAN_FRONTEND="noninteractive"
 
+# container default env variables
 ENV \
   APP_DIR="/app" \
   CONFIG_DIR="/config" \
@@ -10,6 +11,8 @@ ENV \
   UMASK="002" \
   TZ="Etc/UTC" \
   ARGS=""
+
+# container env
 ENV \
   XDG_CONFIG_HOME="${CONFIG_DIR}/.config" \
   XDG_CACHE_HOME="${CONFIG_DIR}/.cache" \
@@ -51,9 +54,8 @@ RUN \
   locale-gen en_US.UTF-8 && \
   apt-get install -y --reinstall ca-certificates && \
 # make directories
-  mkdir \
-    "${APP_DIR}" \
-    "${CONGIG_DIR}" && \
+  mkdir "${APP_DIR}" && \
+  mkdir "${CONGIG_DIR}" && \
   mv /usr/bin/with-contenv /usr/bin/with-contenvb && \
 # create user
   useradd -u "${PUID}" -U -d "${CONFIG_DIR}" -s /bin/false nobody && \
@@ -61,14 +63,11 @@ RUN \
 # clean up ##
   apt-get autoremove && \
   apt-get clean && \
-  rm -rf \
-    /tmp/* \
-    /var/lib/apt/lists/*
-    /var/tmp/*
-
+  rm -rf /tmp/* /var/lib/apt/lists/* /var/tmp/*
 # add local files
 COPY root/ /
 
+# mapped volumes and entrypoint
 VOLUME ["${CONFIG_DIR}"]
 ENTRYPOINT ["/init"]
 
