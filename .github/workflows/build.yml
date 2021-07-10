@@ -147,10 +147,11 @@ jobs:
           registry: ghcr.io
           username: '${{ github.repository_owner }}'
           password: '${{ secrets.GITHUB_TOKEN }}'
+
       - name: Create manifests
         env:
           DOCKER_CLI_EXPERIMENTAL: enabled
-        run: >
+        run: |
           IMAGE=${{ matrix.registry }}/${GITHUB_REPOSITORY}
 
           TAG=${GITHUB_REF//refs\/heads\//}
