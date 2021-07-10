@@ -1,9 +1,15 @@
-name: build
+# workflow name
+name: CI
 
 on:
-  push:
-    branches-ignore:
-      - 'dependabot/**'
+  # manual workflow run
+  workflow_dispatch:
+  # Sequence of patterns matched against refs/head
+  #push:
+    #branches-ignore:
+     # - 'dependabot/**'
+    releases:
+      - 'v*.*.*'
 
 jobs:
 
@@ -39,7 +45,7 @@ jobs:
       - name: Check if architecture exists
         id: arch_check
         run: |
-          (test -f ${{ matrix.architecture }}.Dockerfile && echo ::set-output name=check::passed) || echo ::set-output name=check::failed
+          (test -f Dockerfile.${{ matrix.architecture }} && echo ::set-output name=check::passed) || echo ::set-output name=check::failed
 
       - name: Set up QEMU
         if: "contains(steps.arch_check.outputs.check, 'passed')"
@@ -81,7 +87,7 @@ jobs:
           echo ::set-output name=url::${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/blob/master/README.md
           echo ::set-output name=platform::${ARCHITECTURE//-/\/}
           echo ::set-output name=cache::${GITHUB_REPOSITORY}:${GITHUB_REF//refs\/heads\//}-cache-${{ matrix.architecture }}
-          echo ::set-output name=tag::${GITHUB_REPOSITORY}:${GITHUB_REF//refs\/heads\//}-${GITHUB_SHA:0:7}-${GITHUB_RUN_NUMBER}-${{ matrix.architecture }}
+          echo ::set-output name=tag::${GITHUB_REPOSITORY}:${GITHUB_REF//refs\/heads\//}-${GITHUB_SHA:0:7}"-${{ matrix.architecture }}
           VERSION=$(jq -r '.version // empty' < VERSION.json)
           if [[ -z ${VERSION} ]]; then
             VERSION=$(date +"%Y%m%d%H%M%S")
@@ -104,7 +110,7 @@ jobs:
         with:
           push: true
           platforms: ${{ steps.prep.outputs.platform }}
-          file: ./${{ matrix.architecture }}.Dockerfile
+          file: ./Dockerfile.${{ matrix.architecture }}
           cache-from: ghcr.io/${{ steps.prep.outputs.cache }}
           cache-to: ghcr.io/${{ steps.prep.outputs.cache }}
           tags: |
@@ -119,7 +125,7 @@ jobs:
             org.opencontainers.image.url=${{ steps.prep.outputs.url }}
             org.opencontainers.image.version=${{ steps.prep.outputs.version }}
           build-args: |
-            GITHUB_TOKEN=${{ secrets.PERSONAL_TOKEN }}
+            GITHUB_TOKEN=${{ secrets.GITHUB_TOKEN }}
             BUILD_ARCHITECTURE=${{ matrix.architecture }}
             PACKAGE_VERSION=${{ steps.prep.outputs.package-version }}
             ${{ steps.prep.outputs.build-args }}
@@ -150,8 +156,8 @@ jobs:
         uses: docker/login-action@v1
         with:
           registry: docker.io
-          username: ${{ secrets.DOCKER_USER }}
-          password: ${{ secrets.DOCKER_TOKEN }}
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
 
       - name: Login to GitHub Container Registry
         if: matrix.registry == 'ghcr.io'
@@ -159,7 +165,7 @@ jobs:
         with:
           registry: ghcr.io
           username: ${{ github.repository_owner }}
-          password: ${{ secrets.PERSONAL_TOKEN }}
+          password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Create manifests
         env:
@@ -170,9 +176,9 @@ jobs:
           SOURCE=${IMAGE}:${TAG}-${GITHUB_SHA:0:7}-${GITHUB_RUN_NUMBER}
           VERSION=${{ needs.build.outputs.version }}
           BRANCH=${{ needs.build.outputs.branch }}
-          [[ -f linux-amd64.Dockerfile ]]  && AMD64=${SOURCE}-linux-amd64
-          [[ -f linux-arm64.Dockerfile ]]  && ARM64=${SOURCE}-linux-arm64
-          [[ -f linux-arm-v7.Dockerfile ]] && ARMV7=${SOURCE}-linux-arm-v7
+          [[ -f Dockerfile.linux-amd64 ]]  && AMD64=${SOURCE}-linux-amd64
+          [[ -f Dockerfile.linux-arm64 ]]  && ARM64=${SOURCE}-linux-arm64
+          [[ -f Dockerfile.linux-arm-v7 ]] && ARMV7=${SOURCE}-linux-arm-v7
           docker manifest create ${IMAGE}:${TAG}${BRANCH} ${AMD64} ${ARM64} ${ARMV7}
           docker manifest push   ${IMAGE}:${TAG}${BRANCH}
           docker manifest create ${IMAGE}:${TAG}${BRANCH}-${VERSION//\~/-} ${AMD64} ${ARM64} ${ARMV7}
@@ -184,92 +190,6 @@ jobs:
             docker manifest push   ${IMAGE}:latest
           fi
 
-  notify:
-    runs-on: ubuntu-20.04
-    if: ${{ always() }}
-    needs: [build, publish]
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v2
-
-      - name: Login to GitHub Container Registry
-        uses: docker/login-action@v1
-        with:
-          registry: ghcr.io
-          username: ${{ github.repository_owner }}
-          password: ${{ secrets.PERSONAL_TOKEN }}
-
-      - name: Take screenshot
-        if: "contains(needs.publish.result, 'success')"
-        run: |
-          if [[ -f puppeteer.js ]]; then
-            bash update.sh screenshot ghcr.io/${GITHUB_REPOSITORY}:${GITHUB_REF//refs\/heads\//}-${GITHUB_SHA:0:7}
-          fi
-
-      - name: Send discord notification
-        if: "!contains(github.event.head_commit.message, 'skip ci')"
-        env:
-          DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
-          EXTRA_DISCORD_WEBHOOK: ${{ secrets.EXTRA_DISCORD_WEBHOOK }}
-          GITHUB_OWNER: ${{ github.repository_owner }}
-          GITHUB_TOKEN: ${{ secrets.PERSONAL_TOKEN }}
-          VERSION: ${{ needs.build.outputs.version }}
-          BRANCH: ${{ needs.build.outputs.branch }}
-          STATUS: ${{ needs.publish.result }}
-        shell: bash
-        run: |
-          export DOCKER_CLI_EXPERIMENTAL=enabled
-          [[ "${STATUS}" == "success" ]] && DIGESTS=$(docker manifest inspect ghcr.io/${GITHUB_REPOSITORY}:${GITHUB_REF//refs\/heads\//}-${GITHUB_SHA:0:7} | jq -r '.manifests[]  | "\(.digest | .[7:19]) \(.platform.os)/\(.platform.architecture)\(.platform.variant // "")"')
-          COMMIT_MESSAGE="$(curl -u "${GITHUB_OWNER}:${GITHUB_TOKEN}" -fsSL --retry 5 "https://api.github.com/repos/${GITHUB_REPOSITORY}/commits/${GITHUB_SHA}" | jq -r .commit.message | head -1)"
-          [[ "${STATUS}" == "success" ]] && COLOR="3066993"
-          CHANGELOG=$(jq -r '.changelog' < VERSION.json)
-          if [[ ${CHANGELOG} != null ]]; then
-            VERSION="[${VERSION:----}](${CHANGELOG})"
-          fi
-          if [[ ! -f "screenshot.png" ]]; then
-              curl -fsSL --retry 5 "https://hotio.dev/img/pullio-background.png" > screenshot.png
-          fi
-          json='{
-            "embeds": [
-              {
-                "title": "'${GITHUB_REPOSITORY}':'${GITHUB_REF//refs\/heads\//}${BRANCH}'",
-                "url": "https://github.com/'${GITHUB_REPOSITORY}'/actions/runs/'${GITHUB_RUN_ID}'",
-                "color": '${COLOR:-15158332}',
-                "fields": [
-                  {
-                    "name": "Commit Message",
-                    "value": "```'${COMMIT_MESSAGE//\"/\\\"}'```"
-                  },
-                  {
-                    "name": "Commit",
-                    "value": "['${GITHUB_SHA:0:7}'](https://github.com/'${GITHUB_REPOSITORY}'/commit/'${GITHUB_SHA}')",
-                    "inline": true
-                  },
-                  {
-                    "name": "Version",
-                    "value": "'${VERSION:----}'",
-                    "inline": true
-                  },
-                  {
-                    "name": "Digests",
-                    "value": "```'"$(echo "${DIGESTS:----}" | tr '\n' '#' | sed 's/#/\\n/g')"'```"
-                  }
-                ],
-                "footer": {
-                  "text": "Powered by GitHub Actions"
-                },
-                "timestamp": "'$(date -u +'%FT%T.%3NZ')'",
-                "image": {
-                  "url": "attachment://screenshot.png"
-                }
-              }
-            ]
-          }'
-          curl -fsSL --retry 5 -H "Content-Type: multipart/form-data" -F "file=@screenshot.png" -F "payload_json=${json}" "${DISCORD_WEBHOOK}" > /dev/null
-          if [[ -n ${EXTRA_DISCORD_WEBHOOK} ]]; then
-            curl -fsSL --retry 5 -H "Content-Type: multipart/form-data" -F "file=@screenshot.png" -F "payload_json=${json}" "${EXTRA_DISCORD_WEBHOOK}" > /dev/null
-          fi
-
   tags:
     runs-on: ubuntu-20.04
     needs: [build, publish]
@@ -277,13 +197,13 @@ jobs:
       - name: Update tags.json
         env:
           GITHUB_OWNER: ${{ github.repository_owner }}
-          GITHUB_TOKEN: ${{ secrets.PERSONAL_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           VERSION: ${{ needs.build.outputs.version }}
         shell: bash
         run: |
           git config --global user.email "${GITHUB_OWNER}@users.noreply.github.com"
           git config --global user.name "${GITHUB_OWNER}"
-          git clone -b "master" "https://${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" ${GITHUB_WORKSPACE}/master
+          git clone -b "master" "https://${{ secrets.GITHUB_TOKEN }}@github.com/${GITHUB_REPOSITORY}.git" ${GITHUB_WORKSPACE}/master
           cd ${GITHUB_WORKSPACE}/master || exit 1
           ls -lah
           if [[ -f ./tags.json ]]; then

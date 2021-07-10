@@ -1,0 +1,57 @@
+#!/usr/bin/with-contenv bash
+# shellcheck shell=bash
+
+UMASK ${UMASK:-002}
+PUID=${PUID:-1000}
+PGID=${PGID:-1000}
+
+groupmod -o -g "$PGID" users
+usermod -o -u "$PUID" nobody
+
+echo '
+----------------------------------------------------------
+   _  __________  ____  ______  _____ ____  _____  ___  __
+  | |/ /_  __/ / / / / / / __ \/ ___// __ \/   \ \/ / |/ /
+  |   / / / / /_/ / / / / /_/ /\__ \/ / / / /| |\  /|   / 
+ /   | / / / __  / /_/ / _, _/___/ / /_/ / ___ |/ //   |  
+/_/|_|/_/ /_/ /_/\____/_/ |_|/____/_____/_/  |_/_//_/|_|  
+
+
+Brought to you by thursday
+----------------------------------------------------------
+CONTAINER ENVIRONMENT
+----------------------------------------------------------'
+echo "
+User uid:    $(id -u nobody)
+User gid:    $(id -g users)
+UMASK:       ${UMASK}
+Time zone    ${TZ}
+-------------------------------------
+"
+
+if [[ ! "${PUID}" -eq 0 ]] && [[ ! "${PGID}" -eq 0 ]]; then
+    echo "Executing usermod..."
+    mkdir "/tmp/temphome"
+    usermod -d "/tmp/temphome" nobody
+    usermod -o -u "${PUID}" nobody
+    usermod -d "${CONFIG_DIR}" nobody
+    rm -rf "/tmp/temphome"
+    groupmod -o -g "${PGID}" thursday
+else
+    echo "Running as root is not supported, please update your PUID and PGID!"
+    exit 1
+fi
+
+echo "Applying permissions to ${CONFIG_DIR} and ${APP_DIR}"
+chmod "=rwx" "${CONFIG_DIR}" "${APP_DIR}"
+chown nobody:thursday "${CONFIG_DIR}" 
+chown nobody:thursday "${APP_DIR}"
+
+if [[ -d "${CONFIG_DIR}/app" ]]; then
+    if [[ -n "$(ls -A "${CONFIG_DIR}/app")" ]]; then
+        echo "Migrating files from \"${CONFIG_DIR}/app\" to \"${APP_DIR}\"..."
+        shopt -s dotglob
+        mv -f "${CONFIG_DIR}/app/"* "${CONFIG_DIR}" > /dev/null 2>&1 && rmdir "${CONFIG_DIR}/app"
+        shopt -u dotglob
+    fi
+fi
