@@ -32,23 +32,23 @@ RUN chmod +x /tmp/s6-overlay-${OVERLAY_ARCH}-installer && /tmp/s6-overlay-${OVER
 # install packages
 RUN \
 #nstall apt-utils and locale
-apt update && \
+  apt-get update && \
   apt-get install -y \
-  apt-utils \
-  locales \
-  tzdata && \
+    apt-utils \
+    locales \
+    tzdata && \
 # install packages
   apt-get install -y --no-install-recommends \
-  ca-certificates \
-  curl \
-  jq \
-  p7zip-full \
-  python3 \
-  unrar \
-  unzip \
-  wget && \
+    ca-certificates \
+    curl \
+    jq \
+    p7zip-full \
+    python3 \
+    unrar \
+    unzip \
+    wget2 && \
 # generate locale
-  locale-gen en_US.UTF-8 UTF-8 && \
+  locale-gen en_US.UTF-8 && \
   apt-get install -y --reinstall ca-certificates && \
 # make directories
   mkdir -p \
@@ -62,9 +62,9 @@ apt update && \
   apt autoremove -y && \
   apt clean && \
   rm -rf \
-     /tmp/* \
-     /var/lib/apt/lists/* \
-     /var/tmp/*
+    /tmp/* \
+    /var/lib/apt/lists/* \
+    /var/tmp/*
 
 # add local files
 COPY root/ /
