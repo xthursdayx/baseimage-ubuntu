@@ -102,7 +102,7 @@ jobs:
           ARGS="${ARGS//$'\r'/'%0D'}"
           echo "::set-output name=build-args::${ARGS}"
           echo "::set-output name=package-version::${GITHUB_REF//refs\/heads\//}-${GITHUB_SHA:0:7}"
-
+          
       - name: Build and push
         if: "contains(steps.arch_check.outputs.check, 'passed')"
         uses: docker/build-push-action@v2
