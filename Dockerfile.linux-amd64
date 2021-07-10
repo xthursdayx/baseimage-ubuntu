@@ -59,12 +59,11 @@ RUN \
   useradd -u "${PUID}" -U -d "${CONFIG_DIR}" -s /bin/false nobody && \
   usermod -G users nobody && \
 # clean up ##
-  apt autoremove -y && \
-  apt clean && \
+  apt-get autoremove && \
+  apt-get clean && \
   rm -rf \
     /tmp/* \
-    /var/lib/apt/lists/* \
-    /var/tmp/*
+    /var/lib/apt/l
 
 # add local files
 COPY root/ /
