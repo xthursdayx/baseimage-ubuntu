@@ -96,10 +96,7 @@ jobs:
             VERSION=$(date +"%Y%m%d%H%M%S")
           fi
           echo ::set-output name=version::${VERSION}
-          BRANCH=$(jq -r '.branch // empty' < VERSION.json)
-          if [[ -n ${BRANCH} ]]; then
-            echo ::set-output name=branch::-${BRANCH}
-          fi
+          BRANCH=${{ steps.git-branch-name.outputs }}
           ARGS="$(jq -r 'to_entries[] | [(.key | ascii_upcase),.value] | join("=")' < VERSION.json)"
           ARGS="${ARGS//'%'/'%25'}"
           ARGS="${ARGS//$'\n'/'%0A'}"
@@ -206,7 +203,7 @@ jobs:
           GITHUB_TOKEN: '${{ secrets.GITHUB_TOKEN }}'
           VERSION: '${{ needs.build.outputs.version }}'
         shell: bash
-        run: >
+        run: |
           git config --global user.email
           "${GITHUB_OWNER}@users.noreply.github.com"
 
