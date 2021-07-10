@@ -68,7 +68,7 @@ jobs:
           ARCHITECTURE=${{ matrix.architecture }}
           echo ::set-output name=created::$(date -u +'%Y-%m-%dT%H:%M:%SZ')
           echo ::set-output name=title::${GITHUB_REPOSITORY}:${GITHUB_REF//refs\/heads\//}
-          echo ::set-output name=revision::${GITHUB_SHA}
+          ec ::set-output honame=revision::${GITHUB_SHA}
           echo ::set-output name=source::${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/tree/${GITHUB_REF//refs\/heads\//}
           echo ::set-output name=vendor::${{ github.repository_owner }}
           echo ::set-output name=url::${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/blob/master/README.md
@@ -88,9 +88,7 @@ jobs:
           ARGS="${ARGS//'%'/'%25'}"
           ARGS="${ARGS//$'\n'/'%0A'}"
           ARGS="${ARGS//$'\r'/'%0D'}"
-          echo "::set-output name=build-args::${ARGS}"
-          echo "::set-output name=package-version::${GITHUB_REF//refs\/heads\//}-${GITHUB_SHA:0:7}"
-
+          
       - name: Build and push
         if: 'contains(steps.arch_check.outputs.check, ''passed'')'
         uses: docker/build-push-action@v2
