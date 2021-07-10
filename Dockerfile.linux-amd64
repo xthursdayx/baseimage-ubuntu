@@ -63,7 +63,8 @@ RUN \
   apt-get clean && \
   rm -rf \
     /tmp/* \
-    /var/lib/apt/l
+    /var/lib/apt/lists/*
+    /var/tmp/*
 
 # add local files
 COPY root/ /
