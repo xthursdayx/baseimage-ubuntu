@@ -31,13 +31,13 @@ RUN chmod +x /tmp/s6-overlay-${OVERLAY_ARCH}-installer && /tmp/s6-overlay-${OVER
 
 # install packages
 RUN \
-  echo "**** install apt-utils and locales ****" && \
-  apt update && \
+#nstall apt-utils and locale
+apt update && \
   apt install -y \
   apt-utils \
   locales \
   tzdata && \
-  echo "**** install packages ****" && \
+# install packages
   apt-get install -y --no-install-recommends --no-install-suggests \
   ca-certificates \
   curl \
