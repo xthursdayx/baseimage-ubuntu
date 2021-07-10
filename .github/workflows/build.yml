@@ -1,9 +1,12 @@
 name: CI
-'on':
+
+on:
   workflow_dispatch:
     releases:
       - v*.*.*
+
 jobs:
+
   check:
     runs-on: ubuntu-20.04
     steps:
@@ -17,6 +20,7 @@ jobs:
           else
             true
           fi
+
   build:
     runs-on: ubuntu-20.04
     strategy:
@@ -29,14 +33,17 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v2
+
       - name: Check if architecture exists
         id: arch_check
         run: |
           (test -f Dockerfile.${{ matrix.architecture }} && echo ::set-output
           name=check::passed) || echo ::set-output name=check::failed
+
       - name: Set up QEMU
         if: 'contains(steps.arch_check.outputs.check, ''passed'')'
         uses: docker/setup-qemu-action@v1
+
       - name: Set up Docker Buildx
         if: 'contains(steps.arch_check.outputs.check, ''passed'')'
         uses: docker/setup-buildx-action@v1
@@ -44,12 +51,14 @@ jobs:
           install: true
           version: latest
           driver-opts: 'image=moby/buildkit:master'
+
       - name: Login to DockerHub
         if: 'contains(steps.arch_check.outputs.check, ''passed'')'
         uses: docker/login-action@v1
         with:
           username: '${{ secrets.DOCKERHUB_USERNAME }}'
           password: '${{ secrets.DOCKERHUB_TOKEN }}'
+
       - name: Login to GitHub Container Registry
         if: 'contains(steps.arch_check.outputs.check, ''passed'')'
         uses: docker/login-action@v1
@@ -57,6 +66,7 @@ jobs:
           registry: ghcr.io
           username: '${{ github.repository_owner }}'
           password: '${{ secrets.GITHUB_TOKEN }}'
+
       - name: Prepare
         if: "contains(steps.arch_check.outputs.check, 'passed')"
         id: prep
@@ -121,6 +131,7 @@ jobs:
         if: 'contains(steps.arch_check.outputs.check, ''passed'')'
         run: |
           bash update.sh tests ghcr.io/${{ steps.prep.outputs.tag }}
+
   publish:
     runs-on: ubuntu-20.04
     strategy:
@@ -133,6 +144,7 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v2
+
       - name: Login to DockerHub
         if: matrix.registry == 'docker.io'
         uses: docker/login-action@v1
@@ -140,6 +152,7 @@ jobs:
           registry: docker.io
           username: '${{ secrets.DOCKERHUB_USERNAME }}'
           password: '${{ secrets.DOCKERHUB_TOKEN }}'
+
       - name: Login to GitHub Container Registry
         if: matrix.registry == 'ghcr.io'
         uses: docker/login-action@v1
