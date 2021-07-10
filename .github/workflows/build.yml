@@ -165,7 +165,7 @@ jobs:
         env:
           DOCKER_CLI_EXPERIMENTAL: enabled
         run: |
-          IMAGE=${{ matrix.registry }}/baseimage-ubuntu
+          IMAGE=${{ matrix.registry }}/${{ github.repository_owner }}/baseimage-ubuntu
 
           TAG=${GITHUB_REF//refs\/heads\//}
 
