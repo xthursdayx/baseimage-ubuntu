@@ -2,6 +2,9 @@ name: CI
 
 on:
   workflow_dispatch:
+    push:
+     branch:
+       - focal
     releases:
       - v*.*.*
 
@@ -33,6 +36,13 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v2
+      
+      - name: Git branch name
+        id: git-branch-name
+        uses: EthanSK/git-branch-name-action@v1
+
+      - name: Echo the branch name
+        run: echo "Branch name ${BRANCH_NAME}"
 
       - name: Check if architecture exists
         id: arch_check
@@ -166,40 +176,24 @@ jobs:
           DOCKER_CLI_EXPERIMENTAL: enabled
         run: |
           IMAGE=${{ matrix.registry }}/${{ github.repository_owner }}/baseimage-ubuntu
-
           TAG=${GITHUB_REF//refs\/heads\//}
-
           SOURCE=${IMAGE}:${TAG}-${GITHUB_SHA:0:7}-${GITHUB_RUN_NUMBER}
-
           VERSION=${{ needs.build.outputs.version }}
-
           BRANCH=${{ needs.build.outputs.branch }}
-
           [[ -f Dockerfile.linux-amd64 ]]  && AMD64=${SOURCE}-linux-amd64
-
           [[ -f Dockerfile.linux-arm64 ]]  && ARM64=${SOURCE}-linux-arm64
-
           [[ -f Dockerfile.linux-arm-v7 ]] && ARMV7=${SOURCE}-linux-arm-v7
-
-          docker manifest create ${IMAGE}:${TAG}${BRANCH} ${AMD64} ${ARM64}
-          ${ARMV7}
-
+          docker manifest create ${IMAGE}:${TAG}${BRANCH} ${AMD64} ${ARM64} ${ARMV7}
           docker manifest push   ${IMAGE}:${TAG}${BRANCH}
-
-          docker manifest create ${IMAGE}:${TAG}${BRANCH}-${VERSION//\~/-}
-          ${AMD64} ${ARM64} ${ARMV7}
-
+          docker manifest create ${IMAGE}:${TAG}${BRANCH}-${VERSION//\~/-} ${AMD64} ${ARM64} ${ARMV7}
           docker manifest push   ${IMAGE}:${TAG}${BRANCH}-${VERSION//\~/-}
-
-          docker manifest create ${IMAGE}:${TAG}-${GITHUB_SHA:0:7} ${AMD64}
-          ${ARM64} ${ARMV7}
-
+          docker manifest create ${IMAGE}:${TAG}-${GITHUB_SHA:0:7} ${AMD64} ${ARM64} ${ARMV7}
           docker manifest push   ${IMAGE}:${TAG}-${GITHUB_SHA:0:7}
-
           if [[ ${TAG} == release ]]; then
             docker manifest create ${IMAGE}:latest ${AMD64} ${ARM64} ${ARMV7}
             docker manifest push   ${IMAGE}:latest
           fi
+
   tags:
     runs-on: ubuntu-20.04
     needs:
