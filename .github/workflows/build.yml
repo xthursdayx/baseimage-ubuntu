@@ -207,9 +207,9 @@ jobs:
 
           git config --global user.name "${GITHUB_OWNER}"
 
-          git clone -b "main" "https://${{ secrets.GITHUB_TOKEN
-          }}@github.com/${GITHUB_REPOSITORY}.git" ${GITHUB_WORKSPACE}/main
-          cd ${GITHUB_WORKSPACE}/main || exit 1
+          git clone -b "focal" "https://${{ secrets.GITHUB_TOKEN
+          }}@github.com/${GITHUB_REPOSITORY}.git" ${GITHUB_WORKSPACE}/focal
+          cd ${GITHUB_WORKSPACE}/focal || exit 1
 
           ls -lah
 
