@@ -15,11 +15,12 @@ on:
 jobs:
 
   check:
-    if: ${{ !contains(github.event.head_commit.message, '#skip-ci') }}
+    if: ${{ !contains(github.event.head_commit.message, 'skip ci') }}
     runs-on: ubuntu-20.04
     steps:
       - name: Checkout
         uses: actions/checkout@v2
+
       - name: Shellcheck
         run: |
           shellcheck --version
@@ -33,11 +34,11 @@ jobs:
     runs-on: ubuntu-20.04
     strategy:
       matrix:
-        architecture:  [linux-arm-v7, linux-arm64, linux-amd64]
+        architecture: [linux-arm-v7, linux-arm64, linux-amd64]
     needs: [check]
     outputs:
-      version: '${{ steps.prep.outputs.version }}'
-      branch: '${{ steps.prep.outputs.branch }}'
+      version: ${{ steps.prep.outputs.version }}
+      branch: ${{ steps.prep.outputs.branch }}
     steps:
       - name: Checkout
         uses: actions/checkout@v2
@@ -45,35 +46,34 @@ jobs:
       - name: Check if architecture exists
         id: arch_check
         run: |
-          (test -f Dockerfile.${{ matrix.architecture }} && echo ::set-output
-          name=check::passed) || echo ::set-output name=check::failed
+          (test -f ${{ matrix.architecture }}.Dockerfile && echo ::set-output name=check::passed) || echo ::set-output name=check::failed
 
       - name: Set up QEMU
-        if: 'contains(steps.arch_check.outputs.check, ''passed'')'
+        if: "contains(steps.arch_check.outputs.check, 'passed')"
         uses: docker/setup-qemu-action@v1
 
       - name: Set up Docker Buildx
-        if: 'contains(steps.arch_check.outputs.check, ''passed'')'
+        if: "contains(steps.arch_check.outputs.check, 'passed')"
         uses: docker/setup-buildx-action@v1
         with:
           install: true
           version: latest
-          driver-opts: 'image=moby/buildkit:master'
+          driver-opts: image=moby/buildkit:master
 
       - name: Login to DockerHub
-        if: 'contains(steps.arch_check.outputs.check, ''passed'')'
+        if: "contains(steps.arch_check.outputs.check, 'passed')"
         uses: docker/login-action@v1
         with:
-          username: '${{ secrets.DOCKERHUB_USERNAME }}'
-          password: '${{ secrets.DOCKERHUB_TOKEN }}'
+          username: ${{ secrets.DOCKERHUB_USER }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
 
       - name: Login to GitHub Container Registry
-        if: 'contains(steps.arch_check.outputs.check, ''passed'')'
+        if: "contains(steps.arch_check.outputs.check, 'passed')"
         uses: docker/login-action@v1
         with:
           registry: ghcr.io
-          username: '${{ github.repository_owner }}'
-          password: '${{ secrets.GITHUB_TOKEN }}'
+          username: ${{ github.repository_owner }}
+          password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Prepare
         if: "contains(steps.arch_check.outputs.check, 'passed')"
@@ -83,9 +83,9 @@ jobs:
           echo ::set-output name=created::$(date -u +'%Y-%m-%dT%H:%M:%SZ')
           echo ::set-output name=title::${GITHUB_REPOSITORY}:${GITHUB_REF//refs\/heads\//}
           echo ::set-output name=revision::${GITHUB_SHA}
-          echo ::set-output name=source::${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/tree/{BRANCH}//refs\/heads\//}
+          echo ::set-output name=source::${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/tree/${GITHUB_REF//refs\/heads\//}
           echo ::set-output name=vendor::${{ github.repository_owner }}
-          echo ::set-output name=url::${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/blob/focal/README.md
+          echo ::set-output name=url::${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/blob/main/README.md
           echo ::set-output name=platform::${ARCHITECTURE//-/\/}
           echo ::set-output name=cache::${GITHUB_REPOSITORY}:${GITHUB_REF//refs\/heads\//}-cache-${{ matrix.architecture }}
           echo ::set-output name=tag::${GITHUB_REPOSITORY}:${GITHUB_REF//refs\/heads\//}-${GITHUB_SHA:0:7}-${GITHUB_RUN_NUMBER}-${{ matrix.architecture }}
@@ -94,23 +94,26 @@ jobs:
             VERSION=$(date +"%Y%m%d%H%M%S")
           fi
           echo ::set-output name=version::${VERSION}
-          BRANCH=${{ steps.git-branch-name.outputs }}
+          BRANCH=$(jq -r '.branch // empty' < VERSION.json)
+          if [[ -n ${BRANCH} ]]; then
+            echo ::set-output name=branch::-${BRANCH}
+          fi
           ARGS="$(jq -r 'to_entries[] | [(.key | ascii_upcase),.value] | join("=")' < VERSION.json)"
           ARGS="${ARGS//'%'/'%25'}"
           ARGS="${ARGS//$'\n'/'%0A'}"
           ARGS="${ARGS//$'\r'/'%0D'}"
           echo "::set-output name=build-args::${ARGS}"
           echo "::set-output name=package-version::${GITHUB_REF//refs\/heads\//}-${GITHUB_SHA:0:7}"
-          
+
       - name: Build and push
-        if: 'contains(steps.arch_check.outputs.check, ''passed'')'
+        if: "contains(steps.arch_check.outputs.check, 'passed')"
         uses: docker/build-push-action@v2
         with:
           push: true
-          platforms: '${{ steps.prep.outputs.platform }}'
-          file: './Dockerfile.${{ matrix.architecture }}'
-          cache-from: 'ghcr.io/${{ steps.prep.outputs.cache }}'
-          cache-to: 'ghcr.io/${{ steps.prep.outputs.cache }}'
+          platforms: ${{ steps.prep.outputs.platform }}
+          file: ./${{ matrix.architecture }}.Dockerfile
+          cache-from: ghcr.io/${{ steps.prep.outputs.cache }}
+          cache-to: ghcr.io/${{ steps.prep.outputs.cache }}
           tags: |
             ${{ steps.prep.outputs.tag }}
             ghcr.io/${{ steps.prep.outputs.tag }}
@@ -127,13 +130,15 @@ jobs:
             BUILD_ARCHITECTURE=${{ matrix.architecture }}
             PACKAGE_VERSION=${{ steps.prep.outputs.package-version }}
             ${{ steps.prep.outputs.build-args }}
+
       - name: Dive Analysis
-        if: 'contains(steps.arch_check.outputs.check, ''passed'')'
+        if: "contains(steps.arch_check.outputs.check, 'passed')"
         uses: yuichielectric/dive-action@0.0.4
         with:
-          image: 'ghcr.io/${{ steps.prep.outputs.tag }}'
+          image: "ghcr.io/${{ steps.prep.outputs.tag }}"
+
       - name: Run tests
-        if: 'contains(steps.arch_check.outputs.check, ''passed'')'
+        if: "contains(steps.arch_check.outputs.check, 'passed')"
         run: |
           bash update.sh tests ghcr.io/${{ steps.prep.outputs.tag }}
 
@@ -142,8 +147,7 @@ jobs:
     strategy:
       matrix:
         registry: [docker.io, ghcr.io]
-    needs:
-      - build
+    needs: [build]
     steps:
       - name: Checkout
         uses: actions/checkout@v2
@@ -153,16 +157,16 @@ jobs:
         uses: docker/login-action@v1
         with:
           registry: docker.io
-          username: '${{ secrets.DOCKERHUB_USERNAME }}'
-          password: '${{ secrets.DOCKERHUB_TOKEN }}'
+          username: ${{ secrets.DOCKERHUB_USER }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
 
       - name: Login to GitHub Container Registry
         if: matrix.registry == 'ghcr.io'
         uses: docker/login-action@v1
         with:
           registry: ghcr.io
-          username: '${{ github.repository_owner }}'
-          password: '${{ secrets.GITHUB_TOKEN }}'
+          username: ${{ github.repository_owner }}
+          password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Create manifests
         env:
@@ -173,9 +177,9 @@ jobs:
           SOURCE=${IMAGE}:${TAG}-${GITHUB_SHA:0:7}-${GITHUB_RUN_NUMBER}
           VERSION=${{ needs.build.outputs.version }}
           BRANCH=${{ needs.build.outputs.branch }}
-          [[ -f Dockerfile.linux-amd64 ]]  && AMD64=${SOURCE}-linux-amd64
-          [[ -f Dockerfile.linux-arm64 ]]  && ARM64=${SOURCE}-linux-arm64
-          [[ -f Dockerfile.linux-arm-v7 ]] && ARMV7=${SOURCE}-linux-arm-v7
+          [[ -f linux-amd64.Dockerfile ]]  && AMD64=${SOURCE}-linux-amd64
+          [[ -f linux-arm64.Dockerfile ]]  && ARM64=${SOURCE}-linux-arm64
+          [[ -f linux-arm-v7.Dockerfile ]] && ARMV7=${SOURCE}-linux-arm-v7
           docker manifest create ${IMAGE}:${TAG}${BRANCH} ${AMD64} ${ARM64} ${ARMV7}
           docker manifest push   ${IMAGE}:${TAG}${BRANCH}
           docker manifest create ${IMAGE}:${TAG}${BRANCH}-${VERSION//\~/-} ${AMD64} ${ARM64} ${ARMV7}
@@ -184,20 +188,18 @@ jobs:
           docker manifest push   ${IMAGE}:${TAG}-${GITHUB_SHA:0:7}
           if [[ ${TAG} == release ]]; then
             docker manifest create ${IMAGE}:latest ${AMD64} ${ARM64} ${ARMV7}
-            docker manifest push ${IMAGE}:latest
+            docker manifest push   ${IMAGE}:latest
           fi
 
   tags:
     runs-on: ubuntu-20.04
-    needs:
-      - build
-      - publish
+    needs: [build, publish]
     steps:
       - name: Update tags.json
         env:
-          GITHUB_OWNER: '${{ github.repository_owner }}'
-          GITHUB_TOKEN: '${{ secrets.GITHUB_TOKEN }}'
-          VERSION: '${{ needs.build.outputs.version }}'
+          GITHUB_OWNER: ${{ github.repository_owner }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          VERSION: ${{ needs.build.outputs.version }}
         shell: bash
         run: |
           git config --global user.email "${GITHUB_OWNER}@users.noreply.github.com"
