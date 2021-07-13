@@ -1,16 +1,21 @@
 name: CI
 
 on:
-  workflow_dispatch:
-    push:
-     branch:
-       - focal
-    releases:
-      - v*.*.*
+  # Trigger the workflow on push or pull request,
+  # but only for the main branch
+    push: 
+      branches-ignore:
+        - 'dependabot/**'
+        - 'releases/**-alpha'
+      tags: v*.*.*
+    release:
+        types: [published]
+    workflow_dispatch:
 
 jobs:
 
   check:
+    if: ${{ !contains(github.event.head_commit.message, '#skip-ci') }}
     runs-on: ubuntu-20.04
     steps:
       - name: Checkout
@@ -36,13 +41,6 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v2
-      
-      - name: Git branch name
-        id: git-branch-name
-        uses: EthanSK/git-branch-name-action@v1
-
-      - name: Echo the branch name
-        run: echo "Branch name ${BRANCH_NAME}"
 
       - name: Check if architecture exists
         id: arch_check
