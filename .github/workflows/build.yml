@@ -64,7 +64,7 @@ jobs:
         if: "contains(steps.arch_check.outputs.check, 'passed')"
         uses: docker/login-action@v1
         with:
-          username: ${{ secrets.DOCKERHUB_USER }}
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
       - name: Login to GitHub Container Registry
@@ -157,7 +157,7 @@ jobs:
         uses: docker/login-action@v1
         with:
           registry: docker.io
-          username: ${{ secrets.DOCKERHUB_USER }}
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
       - name: Login to GitHub Container Registry
@@ -177,9 +177,9 @@ jobs:
           SOURCE=${IMAGE}:${TAG}-${GITHUB_SHA:0:7}-${GITHUB_RUN_NUMBER}
           VERSION=${{ needs.build.outputs.version }}
           BRANCH=${{ needs.build.outputs.branch }}
-          [[ -f linux-amd64.Dockerfile ]]  && AMD64=${SOURCE}-linux-amd64
-          [[ -f linux-arm64.Dockerfile ]]  && ARM64=${SOURCE}-linux-arm64
-          [[ -f linux-arm-v7.Dockerfile ]] && ARMV7=${SOURCE}-linux-arm-v7
+          [[ -f Dockerfile.linux-amd64 ]]  && AMD64=${SOURCE}-linux-amd64
+          [[ -f Dockerfile.linux-arm64 ]]  && ARM64=${SOURCE}-linux-arm64
+          [[ -f Dockerfile.linux-arm-v7 ]] && ARMV7=${SOURCE}-linux-arm-v7
           docker manifest create ${IMAGE}:${TAG}${BRANCH} ${AMD64} ${ARM64} ${ARMV7}
           docker manifest push   ${IMAGE}:${TAG}${BRANCH}
           docker manifest create ${IMAGE}:${TAG}${BRANCH}-${VERSION//\~/-} ${AMD64} ${ARM64} ${ARMV7}
