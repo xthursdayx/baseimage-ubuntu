@@ -1,11 +1,13 @@
 version: 2
 updates:
   - package-ecosystem: 'github-actions'
+    branches: all
     directory: '/'
     schedule:
       interval: 'daily'
 
   - package-ecosystem: 'docker'
+    branch: focal
     directory: '/'
     schedule:
       interval: 'daily'
