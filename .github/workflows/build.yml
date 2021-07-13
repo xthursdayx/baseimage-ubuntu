@@ -202,17 +202,11 @@ jobs:
           VERSION: '${{ needs.build.outputs.version }}'
         shell: bash
         run: |
-          git config --global user.email
-          "${GITHUB_OWNER}@users.noreply.github.com"
-
+          git config --global user.email "${GITHUB_OWNER}@users.noreply.github.com"
           git config --global user.name "${GITHUB_OWNER}"
-
-          git clone -b "focal" "https://${{ secrets.GITHUB_TOKEN
-          }}@github.com/${GITHUB_REPOSITORY}.git" ${GITHUB_WORKSPACE}/focal
-          cd ${GITHUB_WORKSPACE}/focal || exit 1
-
+          git clone -b "focal" "https://${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" ${GITHUB_WORKSPACE}/focal
+          cd ${GITHUB_WORKSPACE}/master || exit 1
           ls -lah
-
           if [[ -f ./tags.json ]]; then
             json=$(cat ./tags.json)
             jq '(.tags[] | select(.name == "'"${GITHUB_REF//refs\/heads\//}"'") | .version) |= "'"${VERSION//\~/-}"'"' <<< "${json}" > ./tags.json
