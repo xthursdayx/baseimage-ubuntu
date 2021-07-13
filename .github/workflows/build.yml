@@ -141,9 +141,7 @@ jobs:
     runs-on: ubuntu-20.04
     strategy:
       matrix:
-        registry:
-          - docker.io
-          - ghcr.io
+        registry: [docker.io, ghcr.io]
     needs:
       - build
     steps:
@@ -186,7 +184,7 @@ jobs:
           docker manifest push   ${IMAGE}:${TAG}-${GITHUB_SHA:0:7}
           if [[ ${TAG} == release ]]; then
             docker manifest create ${IMAGE}:latest ${AMD64} ${ARM64} ${ARMV7}
-            docker manifest push   ${IMAGE}:latest
+            docker manifest push ${IMAGE}:latest
           fi
 
   tags:
