@@ -66,7 +66,7 @@ jobs:
         run: |
           ARCHITECTURE=${{ matrix.architecture }}
           echo ::set-output name=created::$(date -u +'%Y-%m-%dT%H:%M:%SZ')
-          echo ::set-output name=title::${GITHUB_REPOSITORY}:${GITHUB_REF//refs\/heads\//}
+          echo ::set-output name=title::${GITHUB_REPOSITORY}::${GITHUB_REF//refs\/heads\//}
           echo ::set-output name=revision::${GITHUB_SHA}
           echo ::set-output name=source::${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/tree/${GITHUB_REF//refs\/heads\//}
           echo ::set-output name=vendor::${{ github.repository_owner }}
