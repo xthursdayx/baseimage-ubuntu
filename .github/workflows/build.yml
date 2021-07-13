@@ -28,6 +28,12 @@ jobs:
           else
             true
           fi
+      - name: Git branch name
+        id: git-branch-name
+        uses: EthanSK/git-branch-name-action@v1
+
+      - name: Echo the branch name
+        run: echo "Branch name ${BRANCH_NAME}" >> $GITHUB_ENV
 
   build:
     runs-on: ubuntu-20.04
@@ -83,9 +89,9 @@ jobs:
           echo ::set-output name=created::$(date -u +'%Y-%m-%dT%H:%M:%SZ')
           echo ::set-output name=title::${GITHUB_REPOSITORY}:${GITHUB_REF//refs\/heads\//}
           echo ::set-output name=revision::${GITHUB_SHA}
-          echo ::set-output name=source::${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/tree/${GITHUB_REF//refs\/heads\//}
+          echo ::set-output name=source::${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/tree/{BRANCH}//refs\/heads\//}
           echo ::set-output name=vendor::${{ github.repository_owner }}
-          echo ::set-output name=url::${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/blob/master/README.md
+          echo ::set-output name=url::${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/blob/focal/README.md
           echo ::set-output name=platform::${ARCHITECTURE//-/\/}
           echo ::set-output name=cache::${GITHUB_REPOSITORY}:${GITHUB_REF//refs\/heads\//}-cache-${{ matrix.architecture }}
           echo ::set-output name=tag::${GITHUB_REPOSITORY}:${GITHUB_REF//refs\/heads\//}-${GITHUB_SHA:0:7}-${GITHUB_RUN_NUMBER}-${{ matrix.architecture }}
@@ -207,10 +213,9 @@ jobs:
 
           git config --global user.name "${GITHUB_OWNER}"
 
-          git clone -b "master" "https://${{ secrets.GITHUB_TOKEN
-          }}@github.com/${GITHUB_REPOSITORY}.git" ${GITHUB_WORKSPACE}/master
-
-          cd ${GITHUB_WORKSPACE}/master || exit 1
+          git clone -b "main" "https://${{ secrets.GITHUB_TOKEN
+          }}@github.com/${GITHUB_REPOSITORY}.git" ${GITHUB_WORKSPACE}/main
+          cd ${GITHUB_WORKSPACE}/main || exit 1
 
           ls -lah
 
