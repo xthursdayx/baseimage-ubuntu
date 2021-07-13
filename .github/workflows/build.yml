@@ -183,7 +183,7 @@ jobs:
           git config --global user.email "${GITHUB_OWNER}@users.noreply.github.com"
           git config --global user.name "${GITHUB_OWNER}"
           git clone -b "main" "https://${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" ${GITHUB_WORKSPACE}/main
-          cd ${GITHUB_WORKSPACE}/master || exit 1
+          cd ${GITHUB_WORKSPACE}/main || exit 1
           ls -lah
           if [[ -f ./tags.json ]]; then
             json=$(cat ./tags.json)
