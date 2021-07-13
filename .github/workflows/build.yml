@@ -113,9 +113,9 @@ jobs:
 
           file: ./Dockerfile.${{ matrix.architecture }}
 
-          cache-from: ghcr.io/${{ steps.prep.outputs.cache }}
+          #cache-from: ghcr.io/${{ steps.prep.outputs.cache }}
 
-          cache-to: ghcr.io/${{ steps.prep.outputs.cache }}
+          #cache-to: ghcr.io/${{ steps.prep.outputs.cache }}
 
           tags: |
             ${{ steps.prep.outputs.tag }}
@@ -135,13 +135,13 @@ jobs:
             ${{ steps.prep.outputs.build-args }}
 
       - name: Dive Analysis
-        if: "contains(steps.arch_check.outputs.check, 'passed')"
+        if: ${{ contains(steps.arch_check.outputs.check, 'passed') }}
         uses: yuichielectric/dive-action@0.0.4
         with:
           image: "ghcr.io/${{ steps.prep.outputs.tag }}"
 
       - name: Run tests
-        if: "contains(steps.arch_check.outputs.check, 'passed')"
+        if: ${{ contains(steps.arch_check.outputs.check, 'passed') }}
         run: |
           bash update.sh tests ghcr.io/${{ steps.prep.outputs.tag }}
 
