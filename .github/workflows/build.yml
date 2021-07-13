@@ -42,7 +42,7 @@ jobs:
       - name: Check if architecture exists
         id: arch_check
         run: |
-          (test -f ${{ matrix.architecture }}.Dockerfile && echo ::set-output name=check::passed) || echo ::set-output name=check::failed
+          (test -f Dockerfile.${{ matrix.architecture }} && echo ::set-output name=check::passed) || echo ::set-output name=check::failed
 
       - name: Set up QEMU
         if: ${{ contains(steps.arch_check.outputs.check, 'passed') }}
