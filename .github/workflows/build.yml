@@ -41,7 +41,7 @@ jobs:
       - name: Check if architecture exists
         id: arch_check
         run: |
-          (test -f ${{ matrix.architecture }}.Dockerfile && echo ::set-output name=check::passed) || echo ::set-output name=check::failed
+          (test -f Dockerfile.${{ matrix.architecture }}. && echo ::set-output name=check::passed) || echo ::set-output name=check::failed
 
       - name: Set up QEMU
         if: "contains(steps.arch_check.outputs.check, 'passed')"
@@ -106,7 +106,7 @@ jobs:
         with:
           push: true
           platforms: ${{ steps.prep.outputs.platform }}
-          file: ./${{ matrix.architecture }}.Dockerfile
+          file: ./Dockerfile.${{ matrix.architecture }}
           cache-from: ghcr.io/${{ steps.prep.outputs.cache }}
           cache-to: ghcr.io/${{ steps.prep.outputs.cache }}
           tags: |
