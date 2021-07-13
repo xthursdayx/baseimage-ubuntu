@@ -32,11 +32,11 @@ RUN \
   apt-get install -y --no-install-recommends \
     ca-certificates \
     curl \
-	gnupg \
+    gnupg \
     jq \
     p7zip-full \
     python3 \
-	tzdata \
+    tzdata \
     unrar \
     unzip \
     wget2 && \
