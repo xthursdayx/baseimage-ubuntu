@@ -166,28 +166,28 @@ jobs:
           username: '${{ github.repository_owner }}'
           password: '${{ secrets.GITHUB_TOKEN }}'
 
-   #   - name: Create manifests
-   #     env:
-   #       DOCKER_CLI_EXPERIMENTAL: enabled
-   #     run: |
-   #       IMAGE=docker.io/${GITHUB_REPOSITORY}
-   #       TAG=${GITHUB_REF//refs\/heads\//}
-   #       SOURCE=${IMAGE}:${TAG}-${GITHUB_SHA:0:7}-${GITHUB_RUN_NUMBER}
-   #       VERSION=${{ needs.build.outputs.version }}
-   #       BRANCH=${{ needs.build.outputs.branch }}
-   #       [[ -f Dockerfile.linux-amd64 ]]  && AMD64=${SOURCE}-linux-amd64
-   #       [[ -f Dockerfile.linux-arm64 ]]  && ARM64=${SOURCE}-linux-arm64
-   #       [[ -f Dockerfile.linux-arm-v7 ]] && ARMV7=${SOURCE}-linux-arm-v7
-   #       docker manifest create ${IMAGE}:${TAG}${BRANCH} ${AMD64} ${ARM64} ${ARMV7}
-   #       docker manifest push   ${IMAGE}:${TAG}${BRANCH}
-   #       docker manifest create ${IMAGE}:${TAG}${BRANCH}-${VERSION//\~/-} ${AMD64} ${ARM64} ${ARMV7}
-   #       docker manifest push   ${IMAGE}:${TAG}${BRANCH}-${VERSION//\~/-}
-   #      docker manifest create ${IMAGE}:${TAG}-${GITHUB_SHA:0:7} ${AMD64} ${ARM64} ${ARMV7}
-   #       docker manifest push   ${IMAGE}:${TAG}-${GITHUB_SHA:0:7}
-   #       if [[ ${TAG} == release ]]; then
-   #         docker manifest create ${IMAGE}:latest ${AMD64} ${ARM64} ${ARMV7}
-   #         docker manifest push   ${IMAGE}:latest
-   #      fi
+      - name: Create manifests
+        env:
+          DOCKER_CLI_EXPERIMENTAL: enabled
+        run: |
+          IMAGE=docker.io/${GITHUB_REPOSITORY}
+          TAG=${GITHUB_REF//refs\/heads\//}
+          SOURCE=${IMAGE}:${TAG}-${GITHUB_SHA:0:7}-${GITHUB_RUN_NUMBER}
+          VERSION=${{ needs.build.outputs.version }}
+          BRANCH=${{ needs.build.outputs.branch }}
+          [[ -f Dockerfile.linux-amd64 ]]  && AMD64=${SOURCE}-linux-amd64
+          [[ -f Dockerfile.linux-arm64 ]]  && ARM64=${SOURCE}-linux-arm64
+          [[ -f Dockerfile.linux-arm-v7 ]] && ARMV7=${SOURCE}-linux-arm-v7
+          docker manifest create ${IMAGE}:${TAG}${BRANCH} ${AMD64} ${ARM64} ${ARMV7}
+          docker manifest push   ${IMAGE}:${TAG}${BRANCH}
+          docker manifest create ${IMAGE}:${TAG}${BRANCH}-${VERSION//\~/-} ${AMD64} ${ARM64} ${ARMV7}
+          docker manifest push   ${IMAGE}:${TAG}${BRANCH}-${VERSION//\~/-}
+          docker manifest create ${IMAGE}:${TAG}-${GITHUB_SHA:0:7} ${AMD64} ${ARM64} ${ARMV7}
+          docker manifest push   ${IMAGE}:${TAG}-${GITHUB_SHA:0:7}
+          if [[ ${TAG} == release ]]; then
+          docker manifest create ${IMAGE}:latest ${AMD64} ${ARM64} ${ARMV7}
+          docker manifest push   ${IMAGE}:latest
+          fi
 
   tags:
     runs-on: ubuntu-20.04
