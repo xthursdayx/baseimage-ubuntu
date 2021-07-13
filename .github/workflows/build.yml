@@ -170,7 +170,7 @@ jobs:
         env:
           DOCKER_CLI_EXPERIMENTAL: enabled
         run: |
-          IMAGE=${{ matrix.registry }}/${{ github.repository_owner }}/baseimage-ubuntu
+          IMAGE=docker.io/${GITHUB_REPOSITORY}
           TAG=${GITHUB_REF//refs\/heads\//}
           SOURCE=${IMAGE}:${TAG}-${GITHUB_SHA:0:7}-${GITHUB_RUN_NUMBER}
           VERSION=${{ needs.build.outputs.version }}
